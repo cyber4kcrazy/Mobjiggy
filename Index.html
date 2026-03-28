@@ -1,1 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mobjiggy Chess</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      text-align: center; 
+      background: #1e1e1e; 
+      color: white; 
+      margin: 0; 
+      padding: 10px;
+    }
+    h1 { margin: 10px 0; }
+    #status { 
+      font-size: 18px; 
+      margin: 10px 0; 
+      min-height: 24px;
+    }
+    #board { 
+      display: grid; 
+      grid-template-columns: repeat(8, 1fr); 
+      width: 100%; 
+      max-width: 480px; 
+      margin: 20px auto; 
+      border: 12px solid #8B4513;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .square {
+      aspect-ratio: 1/1;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      font-size: 42px; 
+      cursor: pointer;
+      user-select: none;
+    }
+    .light { background: #f0d9b5; }
+    .dark { background: #b58863; }
+    .selected { box-shadow: 0 0 0 5px #ff0 inset; }
+    button { 
+      padding: 12px 24px; 
+      font-size: 16px; 
+      margin: 8px; 
+      background: #4CAF50; 
+      color: white; 
+      border: none; 
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h1>♟️ Mobjiggy Chess</h1>
+  <div id="status">White's turn</div>
+  <div id="board"></div>
+  <div>
+    <button onclick="newGame()">New Game</button>
+    <button onclick="undoMove()">Undo Move</button>
+  </div>
 
+  <script>
+    const chess = new Chess();
+    let selectedSquare = null;
+    let boardElement = document.getElementById('board');
+
+    function renderBoard() {
+      boardElement.innerHTML = '';
+      const board = chess.board();
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement('div');
+          const squareName = String.fromCharCode(97 + col) + (8 - row);
+          square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+          square.dataset.square = squareName;
+          const piece = board[row][col];
+          if (piece) square.innerHTML = getPieceUnicode(piece);
+          square.addEventListener('click', handleSquareClick);
+          boardElement.appendChild(square);
+        }
+      }
+    }
+
+    function getPieceUnicode(piece) {
+      const map = {'p':'♟','r':'♜','n':'♞','b':'♝','q':'♛','k':'♚','P':'♙','R':'♖','N':'♘','B':'♗','Q':'♕','K':'♔'};
+      return map[piece.type] || '';
+    }
+
+    function handleSquareClick(e) {
+      const square = e.currentTarget.dataset.square;
+      if (selectedSquare) {
+        const move = chess.move({from: selectedSquare, to: square, promotion: 'q'});
+        if (move) {
+          renderBoard();
+          updateStatus();
+          selectedSquare = null;
+        } else {
+          selectedSquare = null;
+          handleSquareClick(e);
+        }
+      } else {
+        const piece = chess.get(square);
+        if (piece && piece.color === chess.turn()) {
+          selectedSquare = square;
+          renderBoard();
+          const sel = document.querySelector(`[data-square="${square}"]`);
+          if (sel) sel.classList.add('selected');
+        }
+      }
+    }
+
+    function updateStatus() {
+      let status = '';
+      if (chess.in_checkmate()) status = `Checkmate! ${chess.turn() === 'w' ? 'Black' : 'White'} wins!`;
+      else if (chess.in_draw()) status = 'Draw!';
+      else if (chess.in_check()) status = `${chess.turn() === 'w' ? 'White' : 'Black'} is in check`;
+      else status = `${chess.turn() === 'w' ? 'White' : 'Black'}'s turn`;
+      document.getElementById('status').textContent = status;
+    }
+
+    function newGame() {
+      chess.reset();
+      renderBoard();
+      updateStatus();
+    }
+
+    function undoMove() {
+      if (chess.undo()) {
+        renderBoard();
+        updateStatus();
+      }
+    }
+
+    newGame();
+  </script>
+</body>
+</html>
